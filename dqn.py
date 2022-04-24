@@ -3,8 +3,8 @@ import os
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 import torch.utils.data as D
+from torch import nn
 
 from q_net import QNet
 
@@ -13,12 +13,12 @@ class DQN_Trainer:
     def __init__(self, use_gpu=True, output_dir="./output"):
         # hyper parameters
         self.batch_size = 512
-        self.lr = 0.001
+        self.lr = 0.0003
         self.epsilon = 0.3
         self.gamma = 0.96
         self.q_network_iteration = 100
         self.soft_update_theta = 0.9
-        self.clip_norm_max = 1
+        self.clip_norm_max = 1.0
 
         self.train_interval = 1000
         self.train_overall_interval = 5000
@@ -43,12 +43,16 @@ class DQN_Trainer:
         self.train_data_length = 10000
 
         self.build_optimizer()
+        self.build_loss()
 
     def build_optimizer(self):
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=self.lr)
         self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            self.optimizer, [10000, 500000, 1000000, 2000000], gamma=0.3
+            self.optimizer, [10000, 20000, 30000, 50000], gamma=0.3
         )
+
+    def build_loss(self):
+        self.loss_fn = nn.MSELoss()
 
     def get_action(self, state: np.ndarray, random=False, deterministic=False):
         state = torch.tensor(
@@ -108,11 +112,11 @@ class DQN_Trainer:
             q_next = self.target_net(next_state).detach()
             q_max = q_next.max(1)[0].view(self.batch_size, 1)
             q_target = reward + self.gamma * q_max
-            loss = F.mse_loss(q_eval, q_target)
+            loss = self.loss_fn(q_eval, q_target)
             loss_value = loss.detach().cpu().item()
             self.optimizer.zero_grad()
             loss.backward()
-            # nn.utils.clip_grad_norm_(self.eval_net.parameters(), self.clip_norm_max)
+            nn.utils.clip_grad_norm_(self.eval_net.parameters(), self.clip_norm_max)
             self.optimizer.step()
             self.lr_scheduler.step()
             self.step_counter += 1

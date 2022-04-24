@@ -60,7 +60,7 @@ class Game2048Env(gym.Env):  # directions 0, 1, 2, 3 are up, right, down, left
         self.observation_space = spaces.Box(
             0, 1, (self.w, self.h, layers), dtype=np.int32
         )
-        self.set_illegal_move_reward(0.0)
+        self.set_illegal_move_reward(-1.0)
         self.set_max_tile(None)
 
         self.max_illegal = 5  # max number of illegal actions

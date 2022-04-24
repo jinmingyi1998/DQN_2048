@@ -1,0 +1,7 @@
+colorlog
+gym
+numpy
+six
+tensorboard
+tensorboardX
+torch
